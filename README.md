@@ -221,23 +221,6 @@ After retrieving relevant chunks, the project sends the chunks and user question
 
 The LLM generates an answer based on the retrieved document content.
 
-## Example Test Questions
-
-After uploading a test document, you can ask:
-
-```text
-前端部署目录是什么？
-后端服务端口是多少？
-Nginx 配置文件在哪里？
-如何重启后端服务？
-视频流无法播放怎么排查？
-TooManyResultsException 是什么原因？
-MinIO 控制台端口是多少？
-MySQL 报 key 字段错误怎么办？
-怎么检查 Nginx 配置是否正确？
-m7s 的默认端口是多少？
-```
-
 ## Notes
 
 If you change the embedding model, delete the old ChromaDB data before uploading documents again.
