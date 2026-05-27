@@ -2,11 +2,11 @@
 
 DocuRAG is a lightweight RAG project built with FastAPI, ChromaDB, local embedding models, and DeepSeek API.
 
-It supports uploading TXT / Markdown documents, splitting documents into chunks, generating embeddings locally, storing vectors in ChromaDB, retrieving relevant chunks by user questions, and generating answers with an LLM.
+It supports uploading TXT / Markdown / PDF documents, splitting documents into chunks, generating embeddings locally, storing vectors in ChromaDB, retrieving relevant chunks by user questions, and generating answers with an LLM.
 
 ## Features
 
-- Upload TXT and Markdown files
+- Upload TXT and Markdown and PDF files
 - Parse document text
 - Split long text into chunks
 - Generate local embeddings with BGE model
@@ -280,3 +280,26 @@ chroma_db/
 ## License
 
 This project is licensed under the MIT License.
+
+
+
+## Problem
+要检索每日检查内容：  
+如果传递的是温室控制平台每日检查内容  
+就无法匹配到文本，导致检索失败。  
+
+智能温室监控平台运维检查内容 x  
+运维检查内容 √
+
+使用关键词检索(elasticsearch)解决了
+
+## ElasticSearch Docker
+```
+docker run --name docurag-es `
+  -p 9200:9200 `
+  -e "discovery.type=single-node" `
+  -e "xpack.security.enabled=false" `
+  -e "ES_JAVA_OPTS=-Xms1g -Xmx1g" `
+  docker.elastic.co/elasticsearch/elasticsearch:9.4.1
+```
+

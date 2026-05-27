@@ -4,7 +4,8 @@ import os
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 
-from rag_service import add_document, answer_question
+from rag_service import add_document, answer_question, hybrid_search
+from es_store import keyword_search_es
 
 app = FastAPI()
 
@@ -23,10 +24,10 @@ async def upload_file(file: UploadFile = File(...)):
     filename = file.filename
 
 
-    if not filename.endswith((".txt", ".md")):
+    if not filename.endswith((".txt", ".md", ".pdf")):
         return {
             "code":400,
-            "msg": "目前只支持 txt 和 markdown文件"
+            "msg": "目前只支持 txt 和 markdown文件和pdf文件"
         }
     file_path = os.path.join(UPLOAD_DIR, filename)
 
@@ -50,6 +51,28 @@ def reg_chat(req: ChatRequest):
     根据知识库回答问题
     """
     result = answer_question(req.question)
+
+    return {
+        "code": 200,
+        "msg": "success",
+        "data": result
+    }
+
+
+@app.post("/api/reg/key-word-search")
+def keyword_search(req: ChatRequest):
+    result = keyword_search_es(req.question)
+
+    return {
+        "code": 200,
+        "msg": "success",
+        "data": result
+    }
+
+
+@app.post("/api/reg/hybrid-search")
+def hybrid_search_interface(req: ChatRequest):
+    result = hybrid_search(req.question)
 
     return {
         "code": 200,
