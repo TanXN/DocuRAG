@@ -29,7 +29,7 @@ embedding_model = SentenceTransformer(
 )
 
 # 3.ChromaDB：本地向量数据库
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
+chroma_client = chromadb.PersistentClient(path="chroma_db")
 
 collection = chroma_client.get_or_create_collection(
     name =  "documents",

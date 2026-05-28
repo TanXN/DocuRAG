@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-UPLOAD_DIR = "./uploads"
+UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class ChatRequest(BaseModel):

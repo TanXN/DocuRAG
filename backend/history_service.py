@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 
-DB_PATH = "./rag_history.db"
+DB_PATH = "rag_history.db"
 
 def get_conn():
     return sqlite3.connect(DB_PATH)
@@ -45,7 +45,7 @@ def save_qa_history(
                 (question,
                 answer,
                 json.dumps(chunks or [], ensure_ascii=True),
-                datetime.now().strftime("%Y-%m-%d %h:%M:%S"))
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     )
 
     history_id = cursor.lastrowid
