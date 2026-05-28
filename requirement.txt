@@ -6,3 +6,4 @@ openai
 chromadb
 sentence-transformers
 pymupdf
+elasticsearch
