@@ -1,13 +1,26 @@
 # FastAPI 接口
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 
-from rag_service import add_document, answer_question, hybrid_search
+from rag_service import add_document, answer_question, hybrid_search, retrieve_with_rerank, search_relevant_chunks
 from es_store import keyword_search_es
+from history_service import init_histofy_db, list_qa_history, save_qa_history
+from es_store import create_es_index
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("service startup")
+    create_es_index()
+    init_histofy_db()
+    yield
+    print("service shutdown")
+
+
+app = FastAPI(lifespan=lifespan)
 
 UPLOAD_DIR = "./uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -79,3 +92,33 @@ def hybrid_search_interface(req: ChatRequest):
         "msg": "success",
         "data": result
     }
+
+@app.post("/api/reg/rerank-search")
+def rerank_search(req: ChatRequest):
+    result = retrieve_with_rerank(req.question)
+    return {
+        "code": 200,
+        "msg": "success",
+        "data": result
+    }
+
+
+@app.post("/api/reg/vector-search")
+def vector_search(req: ChatRequest):
+    result = search_relevant_chunks(req.question)
+    return {
+        "code": 200,
+        "msg": "success",
+        "data": result
+    }
+
+
+@app.get("/api/reg/rag-history")
+def rag_history(limit: int = 50):
+    result = list_qa_history(limit)
+    return {
+        "code": 200,
+        "message": "success",
+        "data": result
+    }
+

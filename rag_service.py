@@ -11,10 +11,11 @@ import fitz
 
 import es_store
 from es_store import create_es_index, keyword_search_es, index_chunk_to_es
+from reranker import rerank_chunks
+from history_service import save_qa_history
 
 load_dotenv()
 
-create_es_index()
 
 
 deepseek_client = OpenAI(
@@ -182,7 +183,6 @@ def search_relevant_chunks(question: str, top_k: int = 5) -> List[dict]:
         include=["documents", "metadatas", "distances"]
     )
 
-    # print(result)
     documents = result.get("documents", [[]])[0]
     metadatas = result.get("metadatas", [[]])[0]
     distances = result.get("distances", [[]])[0]
@@ -212,8 +212,7 @@ def hybrid_search(
     """
     vector_result = search_relevant_chunks(question, top_k=vector_k)
     keywords_result = keyword_search_es(question, top_k=keyword_k)
-    print("vector", vector_result)
-    print("keyword", keywords_result)
+
     merged = []
     chunk_set = set()
 
@@ -226,6 +225,26 @@ def hybrid_search(
     return merged[:final_k]
 
 
+def retrieve_with_rerank(
+        question: str,
+        vector_k: int = 10,
+        keyword_k: int = 10,
+        top_n: int = 5,
+) -> list[dict]:
+    """
+    混合召回 + rerank.
+    """
+    candidates = hybrid_search(question, vector_k=vector_k, keyword_k=keyword_k, final_k=vector_k+keyword_k)
+
+    final_chunks = rerank_chunks(question, candidates, top_n)
+
+    # chunks编号
+    for index, chunk in enumerate(final_chunks):
+        chunk["source_id"] = f"S{index}"
+
+    return final_chunks
+
+
 def answer_question(question : str) -> dict:
     """
     RAG问答：
@@ -233,31 +252,29 @@ def answer_question(question : str) -> dict:
     2.拼接上下文
     3.调用DeepSeek生成答案
     """
-    chunks = search_relevant_chunks(question)
+    # chunks = search_relevant_chunks(question)
+    chunks = retrieve_with_rerank(question)
 
-    keyword_chunks = es_store.keyword_search_es(question)
 
     context = "\n\n".join([
         f"片段{i+1}:\n{chunk}"
         for i, chunk in enumerate(chunks)
     ])
 
-    keyword_context = "\n\n".join([
-        f"片段{i+1}:\n{chunk}"
-        for i, chunk in enumerate(keyword_chunks)
-    ])
 
 
     prompt = f"""
-    你是一个文档问答助手。
+    你是一个严谨的文档问答助手。
     请只根据下面的文档片段回答用户问题。
-    如果文档片段里没有答案，请回答：文档中没有找到相关信息。
-    不要编造文档中不存在的内容。
+    
+    要求：
+    1. 如果文档片段中没有答案，请回答：文档中没有找到相关信息。
+    2. 不要编造文档中不存在的内容。
+    3. 回答中的关键结论后面尽量标注来源编号，例如 [S1]、[S2]。
+    4. 只能使用下面提供的来源编号，不能编造来源编号。
     
     文档片段：
     {context}
-    关键词文档片段:
-    {keyword_context}
     
     用户问题：
     {question}
@@ -280,11 +297,13 @@ def answer_question(question : str) -> dict:
 
     answer = response.choices[0].message.content
 
+    save_qa_history(question, answer, chunks)
+
+
     return {
         "question": question,
         "answer": answer,
         "chunks": chunks,
-        "keyword_chunks": keyword_chunks,
     }
 
 
